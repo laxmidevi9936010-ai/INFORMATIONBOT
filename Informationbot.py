@@ -240,7 +240,7 @@ def get_info(message):
         sticker = banner_to_sticker(banner_url)
         bot.send_sticker(message.chat.id, sticker)
     except Exception as e:
-        bot.send_message(message.chat.id, f"<b> ❌ Banner Sticker Error: {e}</b>")
+        bot.send_message(message.chat.id, f"❌ Banner Sticker Error: {e}")
 
     # ===== OUTFIT =====
     try:
