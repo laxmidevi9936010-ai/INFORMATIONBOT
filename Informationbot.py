@@ -200,23 +200,39 @@ PUBLIC CRAFTLAND MAPS:
 Not Available</b>"""
 
 # ========= COMMAND =========
-@bot.message_handler(commands=['get'])
+@bot.message_handler(commands=["get"])
 def get_info(message):
-    
     parts = message.text.split()
 
+    # ❌ UID check
     if len(parts) < 2:
         bot.reply_to(message, "<b>❌ Use: /get UID</b>", parse_mode="HTML")
         return
 
     uid = parts[1]
 
-    # 👉 Processing message
-    processing = bot.reply_to(message, f"<b>⏳ Fetching {uid} details please wait...</b>", parse_mode="HTML")
+    # ⏳ Processing message
+    processing = bot.reply_to(
+        message,
+        f"<b>⏳ Fetching {uid} details, please wait...</b>",
+        parse_mode="HTML"
+    )
 
-    # ===== INFO =====
     try:
         res = requests.get(INFO_API.format(uid=uid)).json()
+
+        # 🔴 API error check
+        if not res or "error" in res:
+            try:
+                bot.delete_message(message.chat.id, processing.message_id)
+            except:
+                pass
+
+            error_msg = res.get("error", "Invalid UID or server error.")
+            bot.reply_to(message, f"<b>❌ Info Error: {error_msg}</b>", parse_mode="HTML")
+            return
+
+        # ✅ Normal data
         text = format_info(res)
 
         try:
@@ -225,14 +241,15 @@ def get_info(message):
             pass
 
         bot.reply_to(message, text, parse_mode="HTML")
+
     except Exception as e:
         try:
             bot.delete_message(message.chat.id, processing.message_id)
         except:
             pass
 
-        bot.send_message(message.chat.id, f"<b> ❌ Info Error: {e}</b>")
-        return
+        bot.reply_to(message, f"<b>❌ Info Error: {e}</b>", parse_mode="HTML")
+    
 
     # ===== BANNER AS STICKER =====
     try:
@@ -365,11 +382,11 @@ def region(message):
         data = res.json()
 
         # 👉 Extract safely
-        region_code = data.get("region_code", "N/A")
-        region_name = data.get("region_name", data.get("region", "N/A"))
-        server = data.get("nickname", "N/A")
-        ping = data.get("region", "N/A")
-        player_base = data.get("player_base", "N/A")
+        region_code = data.get("region_code", "Not Found")
+        region_name = data.get("region_name", data.get("region", "Not Found"))
+        server = data.get("nickname", "Not Found")
+        ping = data.get("region", "Not Found")
+        player_base = data.get("player_base", "Not Found")
 
         # 🔥 FINAL DESIGN (exact style)
         text = f"""
@@ -393,61 +410,65 @@ def region(message):
         bot.send_message(message.chat.id, f"❌ Error: {e}")
         
 # ================= LEVEL =================
-@bot.message_handler(commands=['level'])
+@bot.message_handler(commands=["level"])
 def level(message):
-    try:
-        parts = message.text.split()
+    parts = message.text.split()
 
-        # ✅ UID check
-        if len(parts) < 2:
-            bot.reply_to(
-                message,
-                "<b>Usage: /level UID</b>\nExample: /level 2471015544",
+    # ❌ UID check
+    if len(parts) < 2:
+        bot.reply_to(
+            message,
+            "<b>Usage: /level UID</b>\nExample: /level 2471015544",
+            parse_mode="HTML"
+        )
+        return
+
+    uid = parts[1]
+
+    # ⏳ Processing message
+    msg = bot.reply_to(
+        message,
+        "<b>⏳ Fetching level...</b>",
+        parse_mode="HTML"
+    )
+
+    try:
+        url = f"https://level-info-api-by-ajay.vercel.app/level/{uid}"
+        res = requests.get(url, timeout=10)
+
+        # ❌ Status check
+        if res.status_code != 200:
+            bot.edit_message_text(
+                "<b>❌ Level data not found</b>",
+                message.chat.id,
+                msg.message_id,
                 parse_mode="HTML"
             )
             return
 
-        uid = parts[1]
+        data = res.json()
 
-        # 🔥 Processing message
-        msg = bot.reply_to(
-            message,
-            "<b>⏳ Fetching level.</b>",
-            parse_mode="HTML"
-        )
-
-        # 🔄 Dot animation
-        try:
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳ Fetching level..</b>", message.chat.id, msg.message_id, parse_mode="HTML")
-
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳ Fetching level...</b>", message.chat.id, msg.message_id, parse_mode="HTML")
-        except:
-            pass
-
-        # 👉 YOUR API
-        url = f"https://level-info-api-by-ajay.vercel.app/level/{uid}"
-        res = requests.get(url, timeout=100)
-
-        if res.status_code != 200:
+        # 🔴 API error check (IMPORTANT)
+        if not data.get("success", True):
+            error_msg = data.get("message", "API Error")
             bot.edit_message_text(
-                "❌ Level data not found",
+                f"<b>❌ Info Error: {error_msg}</b>",
                 message.chat.id,
-                msg.message_id
+                msg.message_id,
+                parse_mode="HTML"
             )
             return
 
-        data = res.json()
-        p = data.get("data", data)  # fallback support
+        # ✅ Data extract
+        p = data.get("data", data)
 
-        nickname = p.get("nickname", "N/A")
-        level_data = p.get("current_level", p.get("level", "N/A"))
-        exp = p.get("current_exp", p.get("exp", "N/A"))
-        next_exp = p.get("exp_for_next_level", "N/A")
-        exp_for_100_level = p.get("exp_needed_for_100", "N/A")
+        nickname = p.get("nickname", "Not Found")
+        level_data = p.get("current_level", p.get("level", "Not Found"))
+        exp = p.get("current_exp", p.get("exp", "Not Found"))
+        next_exp = p.get("exp_for_next_level", "Not Found")
+        exp_for_100_level = p.get("exp_needed_for_100", "Not Found")
 
-        # 🔥 Final message
+        # ✅ Final message
         text = f"""
 <b>LEVEL INFORMATION
 ┌ DETAILS
@@ -461,16 +482,20 @@ def level(message):
 STATUS: LEVEL DATA FETCHED ✅</b>
 """
 
-        # 👉 Show result
         bot.edit_message_text(
             text,
-            chat_id=message.chat.id,
-            message_id=msg.message_id,
+            message.chat.id,
+            msg.message_id,
             parse_mode="HTML"
         )
 
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Error: {e}")
+        bot.edit_message_text(
+            f"<b>❌ Info Error: {e}</b>",
+            message.chat.id,
+            msg.message_id,
+            parse_mode="HTML"
+        )
         
 # ================= BAN =================
 @bot.message_handler(commands=['bancheck'])
