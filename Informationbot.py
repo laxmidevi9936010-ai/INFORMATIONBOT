@@ -575,15 +575,15 @@ def bancheck(message):
         
 # ================= TOKEN =================
 @bot.message_handler(commands=['token'])
-def token(message):
+def get_token(message):
     try:
         parts = message.text.split()
 
-        # ✅ UID + Password check
-        if len(parts) < 2:
+        # ✅ Check args
+        if len(parts) < 3:
             bot.reply_to(
                 message,
-                "<b>Usage: /token UID PASSWORD</b>\nExample: /token 123456789 abcd1234 ",
+                "<b>Usage:\n/token uid password</b>",
                 parse_mode="HTML"
             )
             return
@@ -591,79 +591,75 @@ def token(message):
         uid = parts[1]
         password = parts[2]
 
-        # 🔥 Processing message
-        msg = bot.reply_to(message, "<b>Generate JWT token...</b>", parse_mode="HTML")
+        # ✅ Processing animation
+        msg = bot.send_message(message.chat.id, "<b>⏳ Processing</b>", parse_mode="HTML")
 
-        # 👉 API URL
-        api_url = f"http://203.57.85.58:2035/token?uid={uid}&password={password}&key=@yashapis"
-
-        # 👉 Request (sync)
-        response = requests.get(api_url, timeout=105)
-
-        if response.status_code != 200:
+        for i in range(3):
+            time.sleep(0.4)
             bot.edit_message_text(
-                "<b>ERROR: API FAILED</b>",
+                f"<b>⏳ Processing{'.' * (i+1)}</b>",
                 message.chat.id,
                 msg.message_id,
                 parse_mode="HTML"
             )
+
+        # ✅ API Call
+        url = f"https://ajay-jwt-api-new-ob53.vercel.app//token?uid={uid}&password={password}"
+        response = requests.get(url, timeout=100)
+
+        # ❌ API error
+        if response.status_code != 200:
+            bot.delete_message(message.chat.id, msg.message_id)
+            bot.send_message(message.chat.id, "<b>API Error Pls check your Uud and password</b>", parse_mode="HTML")
             return
 
         data = response.json()
 
-        # 👉 Delete processing msg (safe)
-        try:
+        # ❌ अगर success false
+        if not data.get("success", True):
             bot.delete_message(message.chat.id, msg.message_id)
-        except:
-            pass
+            bot.send_message(message.chat.id, "<b>API Error Pls check your Uud and password</b>", parse_mode="HTML")
+            return
 
-        # 🔥 Extract data
         decoded = data.get("decoded", {})
         expiry = decoded.get("expiry_info", {})
 
-        token_value = data.get("jwt_token", "N/A")
-
-        # 🔥 split long token
-        def split_text(text, size=60):
-            return "\n".join([text[i:i+size] for i in range(0, len(text), size)])
-
-        token_value = split_text(token_value)
-
-        # 🔥 Final message
+        # ✅ Final Message
         text = f"""
-<b>TOKEN INFORMATION
+<b> TOKEN INFORMATION ✅
 
-┌ ACCOUNT DETAILS
-├─ Account ID: <code>{data.get('account_id', 'Not Found')}</code>
-├─ Nickname: {data.get('nickname', 'Not Found')}
-├─ Region: {data.get('region', 'Not Found')}
-├─ Platform: {data.get('client_type', 'Not Found')}
-├─ Client Version: {data.get('client_version', 'Not Found')}
-├─ OB Version: {data.get('release_version', 'Not Found')}
-├─ Emulator: {data.get('is_emulator', 'Not Found')}
+┌ ACCOUNT
+├─ Account ID: <code>{decoded.get('account_id')}</code>
+├─ Region: {decoded.get('noti_region')}
+├─ Platform: {data.get('platform_name')}
+├─ OB Version: {decoded.get('release_version')}
 
-┌ EXPIRY INFO
-├─ Expired: {expiry.get('is_expired', 'Not Found')}
-├─ Time (IST): {expiry.get('ist', 'Not Found')}
-├─ Remaining: {expiry.get('remaining_human', 'Not Found')}
-└─ Seconds: {expiry.get('remaining_seconds', 'Not Found')}
+┌ STATUS
+├─ Expire: {expiry.get('ist')}
+├─ Lock Region: {decoded.get('lock_region')}
+├─ Open ID: {data.get('open_id')}
 
-┌ REGION INFO
-├─ IP Region: {data.get('country_code', 'Not Found')}
-├─ Lock Region: {data.get('region', 'Not Found')}
-└─ External UID: {data.get('external_uid', 'Not Found')}
+┌ TOKENS
+├─ Access Token:
+<code>{data.get('access_token')}</code>
 
-┌ TOKEN
-<code>{data.get('token', 'Not Found')}</code></b>
+├─ JWT Token:
+<code>{data.get('jwt_token')}</code>
+</b>
 """
-        # 👉 Final send
-        bot.send_message(message.chat.id, text, parse_mode="HTML")
+
+        # ✅ Delete processing
+        bot.delete_message(message.chat.id, msg.message_id)
+
+        # ✅ Send safely (long message)
+        for i in range(0, len(text), 4000):
+            bot.send_message(message.chat.id, text[i:i+4000], parse_mode="HTML")
 
     except requests.exceptions.Timeout:
-        bot.send_message(message.chat.id, "<b>API Timeout ❌ Try again later</b>", parse_mode="HTML")
+        bot.send_message(message.chat.id, "<b>❌ API Error Pls check your Uud and password</b>", parse_mode="HTML")
 
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Error: {e}")
+        bot.send_message(message.chat.id, "<b>❌ API Error Pls check your Uud and password</b>", parse_mode="HTML")
         
 @bot.message_handler(commands=['banner'])
 def banner(message):
