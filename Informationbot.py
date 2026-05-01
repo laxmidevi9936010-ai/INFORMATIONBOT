@@ -351,54 +351,67 @@ def region(message):
 
         uid = parts[1]
 
-        # 🔥 Processing message
+        # ✅ Processing (reply)
         msg = bot.reply_to(
             message,
-            "<b>⏳ Checking region.</b>",
+            "<b>⏳ Checking region</b>",
             parse_mode="HTML"
         )
 
-        # 🔄 Dot animation
-        try:
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳ Checking region..</b>", message.chat.id, msg.message_id, parse_mode="HTML")
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳ Checking region...</b>", message.chat.id, msg.message_id, parse_mode="HTML")
-        except:
-            pass
+        # ✅ Dot animation (same reply edit)
+        for i in range(3):
+            time.sleep(0.4)
+            try:
+                bot.edit_message_text(
+                    f"<b>⏳ Checking region{'.' * (i+1)}</b>",
+                    message.chat.id,
+                    msg.message_id,
+                    parse_mode="HTML"
+                )
+            except:
+                pass
 
-        # 👉 API
+        # ✅ API Call
         url = f"https://region-check-api-by-ajay-k3ax.vercel.app/region?uid={uid}"
         res = requests.get(url, timeout=20)
 
+        # ❌ API status error
         if res.status_code != 200:
             bot.edit_message_text(
-                "❌ Region not found",
+                "<b>❌ Pls check Uid and try again later</b>",
                 message.chat.id,
-                msg.message_id
+                msg.message_id,
+                parse_mode="HTML"
             )
             return
 
         data = res.json()
 
-        # 👉 Extract safely
-        region_code = data.get("region_code", "Not Found")
-        region_name = data.get("region_name", data.get("region", "Not Found"))
-        server = data.get("nickname", "Not Found")
-        ping = data.get("region", "Not Found")
-        player_base = data.get("player_base", "Not Found")
+        # ❌ अगर data empty / invalid
+        if not data or "region" not in data:
+            bot.edit_message_text(
+                "<b>❌ Pls check Uid and try again later</b>",
+                message.chat.id,
+                msg.message_id,
+                parse_mode="HTML"
+            )
+            return
 
-        # 🔥 FINAL DESIGN (exact style)
+        # ✅ Extract safe
+        nickname = data.get("nickname", "Not Found")
+        region_name = data.get("region_name", data.get("region", "Not Found"))
+
+        # ✅ Final message (same reply edit)
         text = f"""
-<b>REGION INFORMATION
+<b> REGION INFORMATION
+
 ┌ DETAILS
 ├─ UID: {uid}
-├─ Nickname: {server}
-├─ Region: {ping}
-└─ PLAYER DATA FETCH SUCCESSFULLY ✅</b>
+├─ Nickname: {nickname}
+├─ Region: {region_name}
+└─ STATUS: SUCCESS ✅</b>
 """
 
-        # 👉 Show result
         bot.edit_message_text(
             text,
             chat_id=message.chat.id,
@@ -406,8 +419,28 @@ def region(message):
             parse_mode="HTML"
         )
 
-    except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Error: {e}")
+    except requests.exceptions.Timeout:
+        bot.edit_message_text(
+            "<b>❌ Pls check Uid and try again later</b>",
+            message.chat.id,
+            msg.message_id,
+            parse_mode="HTML"
+        )
+
+    except Exception:
+        try:
+            bot.edit_message_text(
+                "<b>❌ Pls check Uid and try again later</b>",
+                message.chat.id,
+                msg.message_id,
+                parse_mode="HTML"
+            )
+        except:
+            bot.reply_to(
+                message,
+                "<b>❌ Pls check Uid and try again later</b>",
+                parse_mode="HTML"
+            )
         
 # ================= LEVEL =================
 @bot.message_handler(commands=["level"])
@@ -514,64 +547,101 @@ def bancheck(message):
 
         uid = parts[1]
 
-        # 🔥 Processing message
+        # ✅ Processing (reply)
         msg = bot.reply_to(
             message,
-            "<b>⏳Checking ban check...</b>",
+            "<b>⏳ Checking ban</b>",
             parse_mode="HTML"
         )
 
-        # 👉 Simple loading effect (optional)
-        try:
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳Checking ban check.</b>", message.chat.id, msg.message_id, parse_mode="HTML")
+        # ✅ Dot animation (same reply edit)
+        for i in range(3):
+            time.sleep(0.4)
+            try:
+                bot.edit_message_text(
+                    f"<b>⏳ Checking ban{'.' * (i+1)}</b>",
+                    message.chat.id,
+                    msg.message_id,
+                    parse_mode="HTML"
+                )
+            except:
+                pass
 
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳Checking ban check..</b>", message.chat.id, msg.message_id, parse_mode="HTML")
-
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳Checking ban check...</b>", message.chat.id, msg.message_id, parse_mode="HTML")
-        except:
-            pass
-
-        # 👉 API call
+        # ✅ API call
         url = f"https://free-fire-official-bancheck-api-by.vercel.app/bancheck?uid={uid}"
-        response = requests.get(url)
+        response = requests.get(url, timeout=15)
 
+        # ❌ API status error
         if response.status_code != 200:
-            bot.edit_message_text("❌ API Error", message.chat.id, msg.message_id)
+            bot.edit_message_text(
+                "<b>❌ Pls check Uid and try again later</b>",
+                message.chat.id,
+                msg.message_id,
+                parse_mode="HTML"
+            )
             return
 
         data = response.json()
 
-        # 🔥 Result text
+        # ❌ Invalid / empty data
+        if not data or "ban_status" not in data:
+            bot.edit_message_text(
+                "<b>❌ Pls check Uid and try again later</b>",
+                message.chat.id,
+                msg.message_id,
+                parse_mode="HTML"
+            )
+            return
+
+        # ✅ Extract
+        name = data.get("nickname", "Not Found")
+        region = data.get("region", "Not Found")
+        status = data.get("ban_status", "Not Found")
+        period = data.get("ban_period", "Not Found")
+
+        # ✅ Final message (edit same reply)
         text = f"""
-<b>BAN CHECK RESULT
+<b> BAN CHECK RESULT ✅
+
 ┌ PLAYER INFO
-├─ Name: {data.get('nickname', 'Not Found')}
+├─ Name: {name}
 ├─ UID: {uid}
-├─ Region: {data.get('region', 'Not Found')}
-└─ Status: {data.get('ban_status', 'Not Found')}
+├─ Region: {region}
+└─ Status: {status}
 
 ┌ BAN DETAILS
-└─ Ban Period: {data.get('ban_period', 'Not Found')}</b>
+└─ Ban Period: {period}</b>
 """
 
-        # 👉 Delete processing msg (safe)
-        try:
-            bot.delete_message(message.chat.id, msg.message_id)
-        except:
-            pass
-
-        # 👉 Final result reply
-        bot.reply_to(
-            message,
+        bot.edit_message_text(
             text,
+            message.chat.id,
+            msg.message_id,
             parse_mode="HTML"
         )
 
-    except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Error: {e}")
+    except requests.exceptions.Timeout:
+        bot.edit_message_text(
+            "<b>❌ Pls check Uid and try again later</b>",
+            message.chat.id,
+            msg.message_id,
+            parse_mode="HTML"
+        )
+
+    except Exception:
+        try:
+            bot.edit_message_text(
+                "<b>❌ Pls check Uid and try again later</b>",
+                message.chat.id,
+                msg.message_id,
+                parse_mode="HTML"
+            )
+        except:
+            bot.reply_to(
+                message,
+                "<b>❌ Pls check Uid and try again later</b>",
+                parse_mode="HTML"
+            )
         
 # ================= TOKEN =================
 @bot.message_handler(commands=['token'])
