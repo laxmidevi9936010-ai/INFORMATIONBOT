@@ -404,7 +404,6 @@ def region(message):
         # ✅ Final message (same reply edit)
         text = f"""
 <b> REGION INFORMATION
-
 ┌ DETAILS
 ├─ UID: {uid}
 ├─ Nickname: {nickname}
@@ -602,7 +601,6 @@ def bancheck(message):
         # ✅ Final message (edit same reply)
         text = f"""
 <b> BAN CHECK RESULT ✅
-
 ┌ PLAYER INFO
 ├─ Name: {name}
 ├─ UID: {uid}
