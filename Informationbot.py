@@ -579,7 +579,6 @@ def get_token(message):
     try:
         parts = message.text.split()
 
-        # ✅ Check args
         if len(parts) < 3:
             bot.reply_to(
                 message,
@@ -591,9 +590,14 @@ def get_token(message):
         uid = parts[1]
         password = parts[2]
 
-        # ✅ Processing animation
-        msg = bot.send_message(message.chat.id, "<b>⏳ Processing</b>", parse_mode="HTML")
+        # ✅ Processing reply
+        msg = bot.reply_to(
+            message,
+            "<b>⏳ Processing</b>",
+            parse_mode="HTML"
+        )
 
+        # ✅ Dot animation (same reply edit)
         for i in range(3):
             time.sleep(0.4)
             bot.edit_message_text(
@@ -604,27 +608,33 @@ def get_token(message):
             )
 
         # ✅ API Call
-        url = f"https://ajay-jwt-api-new-ob53.vercel.app//token?uid={uid}&password={password}"
+        url = f"https://ajay-jwt-api-new-ob53.vercel.app/token?uid={uid}&password={password}"
         response = requests.get(url, timeout=100)
 
-        # ❌ API error
         if response.status_code != 200:
-            bot.delete_message(message.chat.id, msg.message_id)
-            bot.send_message(message.chat.id, "<b>API Error Pls check your Uud and password</b>", parse_mode="HTML")
+            bot.edit_message_text(
+                "<b>❌ Pls check your UID and Password and Try again later</b>",
+                message.chat.id,
+                msg.message_id,
+                parse_mode="HTML"
+            )
             return
 
         data = response.json()
 
-        # ❌ अगर success false
         if not data.get("success", True):
-            bot.delete_message(message.chat.id, msg.message_id)
-            bot.send_message(message.chat.id, "<b>API Error Pls check your Uud and password</b>", parse_mode="HTML")
+            bot.edit_message_text(
+                "<b>❌ Pls check your UID and Password and Try again later</b>",
+                message.chat.id,
+                msg.message_id,
+                parse_mode="HTML"
+            )
             return
 
         decoded = data.get("decoded", {})
         expiry = decoded.get("expiry_info", {})
 
-        # ✅ Final Message
+        # ✅ Final output (edit same reply)
         text = f"""
 <b> TOKEN INFORMATION ✅
 
@@ -637,29 +647,39 @@ def get_token(message):
 ┌ STATUS
 ├─ Expire: {expiry.get('ist')}
 ├─ Lock Region: {decoded.get('lock_region')}
-├─ Open ID: {data.get('open_id')}
+├─ Open ID: <code>{data.get('open_id')}</code>
 
 ┌ TOKENS
 ├─ Access Token:
 <code>{data.get('access_token')}</code>
-
 ├─ JWT Token:
 <code>{data.get('jwt_token')}</code>
 </b>
 """
 
-        # ✅ Delete processing
-        bot.delete_message(message.chat.id, msg.message_id)
-
-        # ✅ Send safely (long message)
-        for i in range(0, len(text), 4000):
-            bot.send_message(message.chat.id, text[i:i+4000], parse_mode="HTML")
+        # ✅ Edit same reply → no new message
+        bot.edit_message_text(
+            text,
+            message.chat.id,
+            msg.message_id,
+            parse_mode="HTML"
+        )
 
     except requests.exceptions.Timeout:
-        bot.send_message(message.chat.id, "<b>❌ API Error Pls check your Uud and password</b>", parse_mode="HTML")
+        bot.edit_message_text(
+            "<b>❌ Pls check your UID and Password and Try again later</b>",
+            message.chat.id,
+            msg.message_id,
+            parse_mode="HTML"
+        )
 
-    except Exception as e:
-        bot.send_message(message.chat.id, "<b>❌ API Error Pls check your Uud and password</b>", parse_mode="HTML")
+    except Exception:
+        bot.edit_message_text(
+            "<b>❌ Pls check your UID and Password and Try again later</b>",
+            message.chat.id,
+            msg.message_id,
+            parse_mode="HTML"
+        )
         
 @bot.message_handler(commands=['banner'])
 def banner(message):
