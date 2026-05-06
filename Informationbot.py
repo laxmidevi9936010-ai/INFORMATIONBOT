@@ -11,20 +11,34 @@ TOKEN = "8361883535:AAFtLauspq0GXd0TMS2PvpKcW9OnCv-rvb4"
 bot = telebot.TeleBot(TOKEN)
 
 # ========= API LINKS =========
+API_URL = "http://203.57.85.58:2035/wishlist?uid={}&key=@yashapis"
+EMOTE_API = "https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/{}.png"
 INFO_API = "https://info-api-xi-tawny.vercel.app/get?uid={uid}"
 BANNER_API = "https://ffavtarbanner.vercel.app/avatar-banner?uid={uid}&region=ind"
 OUTFIT_API = "https://outfit-api-by-ajay-one.vercel.app/outfit?uid={uid}&key=AJAY"
 
 def banner_to_sticker(url):
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content)).convert("RGBA")
+    response = requests.get(url, timeout=150)
 
-    # resize for sticker
+    if response.status_code != 200:
+        raise Exception("Banner not found")
+
+    img = Image.open(BytesIO(response.content))
+
+    # ✅ Force convert
+    if img.mode != "RGBA":
+        img = img.convert("RGBA")
+
     img.thumbnail((512, 512))
 
     output = BytesIO()
     output.name = "sticker.webp"
-    img.save(output, "WEBP")
+
+    # ✅ SAFE SAVE
+    try:
+        img.save(output, "WEBP", quality=90, method=6)
+    except Exception as e:
+        raise Exception(f"WEBP convert failed: {e}")
 
     output.seek(0)
     return output
@@ -267,72 +281,109 @@ def get_info(message):
         bot.send_message(message.chat.id, "❌ Outfit Error")
        
 # ================= WISHLIST =================
-@bot.message_handler(commands=['wishlist'])
-def wishlist(message):
-    try:
-        parts = message.text.split()
-
-        # ✅ UID check
-        if len(parts) < 2:
-            bot.reply_to(
-                message,
-                "<b>Usage: /wishlist UID</b>\nExample: /wishlist 2471015544",
-                parse_mode="HTML"
-            )
-            return
-
-        uid = parts[1]
-
-        # 🔥 Processing message
-        msg = bot.reply_to(
-            message,
-            "<b>⏳ Fetching wishlist.</b>",
-            parse_mode="HTML"
-        )
-
-        # 🔄 Dot animation
+def animate(msg, stop):
+    dots = ["⏳ Processing", "⏳ Processing.", "⏳ Processing..", "⏳ Processing..."]
+    i = 0
+    while not stop["stop"]:
         try:
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳ Fetching wishlist..</b>", message.chat.id, msg.message_id, parse_mode="HTML")
-            time.sleep(0.5)
-            bot.edit_message_text("<b>⏳ Fetching wishlist...</b>", message.chat.id, msg.message_id, parse_mode="HTML")
-        except:
-            pass
-
-        # 👉 YOUR API
-        url = f"http://203.57.85.58:2035/wishlist?uid={uid}&key=@yashapis"
-
-        res = requests.get(url, timeout=150)
-
-        if res.status_code != 200:
             bot.edit_message_text(
-                "❌ Wishlist not found",
-                message.chat.id,
-                msg.message_id
-            )
-            return
-
-        data = res.json()
-
-        # 👉 Pretty JSON
-        json_text = json.dumps(data, indent=2)
-
-        # 👉 Delete processing msg
-        try:
-            bot.delete_message(message.chat.id, msg.message_id)
-        except:
-            pass
-
-        # 👉 Telegram limit fix (split)
-        for i in range(0, len(json_text), 4000):
-            bot.send_message(
-                message.chat.id,
-                f"<pre>{json_text[i:i+4000]}</pre>",
+                f"<b>{dots[i % len(dots)]}</b>",
+                msg.chat.id,
+                msg.message_id,
                 parse_mode="HTML"
             )
+            i += 1
+            time.sleep(0.5)
+        except:
+            break
 
-    except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Error: {e}")
+
+@bot.message_handler(commands=["wishlist"])
+def wishlist(message):
+    parts = message.text.split()
+
+    if len(parts) < 2:
+        bot.reply_to(message, "<b>❌ Use: /wishlist UID</b>", parse_mode="HTML")
+        return
+
+    uid = parts[1]
+
+    msg = bot.reply_to(message, "<b>⏳ Processing...</b>", parse_mode="HTML")
+
+    stop_flag = {"stop": False}
+    threading.Thread(target=animate, args=(msg, stop_flag)).start()
+
+    # 🔗 API CALL
+    try:
+        res = requests.get(API_URL.format(uid), timeout=15).json()
+    except:
+        stop_flag["stop"] = True
+        bot.edit_message_text("<b>❌ API Error</b>", message.chat.id, msg.message_id, parse_mode="HTML")
+        return
+
+    stop_flag["stop"] = True
+
+    # ❌ FAIL CHECK
+    if not res.get("success"):
+        bot.edit_message_text("<b>❌ Failed to fetch data</b>", message.chat.id, msg.message_id, parse_mode="HTML")
+        return
+
+    player = res.get("player_info", {})
+
+    # ✅ PLAYER INFO HEADER
+    info = f"""<b>WISHLIST INFORMATION    
+┌ PLAYER INFO
+├─ Nickname: {player.get("name", "N/A")}
+├─ UID: {player.get("uid", uid)}
+├─ Level: {player.get("level", "N/A")}
+├─ Likes: {player.get("likes", "N/A")}
+├─ Region: {player.get("region", "N/A")}
+├─ Total Items: {res.get("total_items", 0)}
+└─ STATUS: SUCCESS ✅
+</b>"""
+
+    bot.edit_message_text(info, message.chat.id, msg.message_id, parse_mode="HTML")
+
+    wishlist = res.get("wishlist", [])
+
+    if not wishlist:
+        bot.send_message(message.chat.id, "<b>❌ Wishlist Not Found</b>", parse_mode="HTML")
+        return
+
+    # ================= ITEMS =================
+    for item in wishlist:
+        name = item.get("name", "Unknown Item")
+        item_id = item.get("item_id")
+        icon = item.get("icon", "")
+        image_link = item.get("item_image_link")
+
+        # 🎯 PERFECT EMOTE DETECTION
+        if icon and "emote" in icon.lower():
+            image = EMOTE_API.format(item_id) if item_id else image_link
+        elif name and "emote" in name.lower():
+            image = EMOTE_API.format(item_id) if item_id else image_link
+        else:
+            image = image_link
+
+        # 🧾 CAPTION
+        caption = f"""<b>┌ ITEM DETAILS
+├─ Name: {name}
+├─ ID: {item_id}
+└─ TYPE: {"EMOTE 🎭" if "emote" in (name+icon).lower() else "ITEM 🎁"}
+</b>"""
+
+        try:
+            bot.send_photo(message.chat.id, image, caption=caption, parse_mode="HTML")
+            time.sleep(0.3)
+        except:
+            bot.send_message(message.chat.id, caption, parse_mode="HTML")
+
+    # ✅ FINAL MESSAGE
+    bot.send_message(
+        message.chat.id,
+        "<b>✅ ALL WISHLIST ITEMS SENT SUCCESSFULLY</b>",
+        parse_mode="HTML"
+    )
         
 # ================= Region =================
 @bot.message_handler(commands=['region'])
