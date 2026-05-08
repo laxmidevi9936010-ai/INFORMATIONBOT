@@ -2,6 +2,7 @@ import telebot
 import threading
 from PIL import Image
 import requests
+from datetime import datetime
 from io import BytesIO
 import time
 import json 
@@ -13,7 +14,7 @@ bot = telebot.TeleBot(TOKEN)
 # ========= API LINKS =========
 API_URL = "http://203.57.85.58:2035/wishlist?uid={}&key=@yashapis"
 EMOTE_API = "https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/{}.png"
-INFO_API = "https://info-api-xi-tawny.vercel.app/get?uid={uid}"
+INFO_API = "https://ajay-new-all-region-info-api.vercel.app/ajay-info?uid={uid}&key=AJAY"
 BANNER_API = "https://ffavtarbanner.vercel.app/avatar-banner?uid={uid}&region=ind"
 OUTFIT_API = "https://outfit-api-by-ajay-one.vercel.app/outfit?uid={uid}&key=AJAY"
 
@@ -43,6 +44,20 @@ def banner_to_sticker(url):
     output.seek(0)
     return output
     
+def convert_time(ts):
+    try:
+        if not ts:
+            return "Not Found"
+
+        ts = int(str(ts).strip())
+
+        if ts > 1000000000000:  # milliseconds check
+            ts = ts / 1000
+
+        return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    except:
+        return "Not Found"         
+              
 # ================= START =================
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -149,37 +164,37 @@ Banner image and outfit image sent directly from API
 def format_info(data):
     return f"""<b>ACCOUNT INFORMATION:
 ┌ ACCOUNT BASIC INFORMATION
-├─ Name: {data.get('AccountInfo', {}).get('AccountName', 'Not Found')}
-├─ Level: {data.get('AccountInfo', {}).get('AccountLevel', 'Not Found')} (Exp: {data.get('AccountInfo', {}).get('AccountEXP', 'Not Found')})
-├─ Region: {data.get('AccountInfo', {}).get('AccountRegion', 'Not Found')}
-├─ Likes: {data.get('AccountInfo', {}).get('AccountLikes', 'Not Found')}
+├─ Name: {data.get('basicInfo', {}).get('nickname', 'Not Found')}
+├─ Level: {data.get('basicInfo', {}).get('level', 'Not Found')} (Exp: {data.get('basicInfo', {}).get('exp', 'Not Found')})
+├─ Region: {data.get('basicInfo', {}).get('region', 'Not Found')}
+├─ Likes: {data.get('basicInfo', {}).get('liked', 'Not Found')}
 ├─ Honor Score: {data.get('creditScoreInfo', {}).get('creditScore', 'Not Found')}
-├─ Celebrity Status: {data.get('AccountInfo', {}).get('AccountBPID', 'Not Found')}
-├─ Title Name: {data.get('AccountInfo', {}).get('Title', 'Not Found')}
-└─ Signature: {data.get('socialinfo', {}).get('signature', 'Not Found')}
+├─ Celebrity Status: {data.get('basicInfo', {}).get('badgeId', 'Not Found')}
+├─ Title Name: {data.get('basicInfo', {}).get('title', 'Not Found')}
+└─ Signature: {data.get('socialInfo', {}).get('signature', 'Not Found')}
 
 ACCOUNT ACTIVITY:
 ┌ ACCOUNT ACTIVITY
-├─ Most Recent OB: {data.get('AccountInfo', {}).get('ReleaseVersion', 'Not Found')}
-├─ Fire Pass: {data.get('AccountInfo', {}).get('AccountSeasonId', 'Not Found')}
-├─ Current Bp Badges: {data.get('AccountInfo', {}).get('AccountBPBadges', 'Not Found')}
-├─ Br Rank: {data.get('AccountInfo', {}).get('BrRank', 'Not Found')} ({data.get('AccountInfo', {}).get('BrRankPoint', 'Not Found')})
-├─ Cs Rank: {data.get('AccountInfo', {}).get('CsRank', 'Not Found')} ({data.get('AccountInfo', {}).get('CsRankPoint', 'Not Found')} Star)
-├─ Gender: {data.get('socialinfo', {}).get('gender', 'Not Found')}
-├─ Show Rank: {data.get('AccountInfo', {}).get('ShowRank', 'Not Found')}
-├─ Show Br Rank: {data.get('AccountInfo', {}).get('ShowBrRank', 'Not Found')}
-├─ Show Cs Rank: {data.get('AccountInfo', {}).get('ShowCsRank', 'Not Found')}
-├─ Created At: {data.get('AccountInfo', {}).get('AccountCreateTime', 'Not Found')}
-└─ Last Login: {data.get('AccountInfo', {}).get('AccountLastLogin', 'Not Found')}
+├─ Most Recent OB: {data.get('basicInfo', {}).get('releaseVersion', 'Not Found')}
+├─ Fire Pass: {data.get('basicInfo', {}).get('seasonId', 'Not Found')}
+├─ Current Bp Badges: {data.get('basicInfo', {}).get('badgeId', 'Not Found')}
+├─ Br Rank: {data.get('basicInfo', {}).get('rank', 'Not Found')} ({data.get('basicInfo', {}).get('rankingPoints', 'Not Found')})
+├─ Cs Rank: {data.get('basicInfo', {}).get('csRank', 'Not Found')} ({data.get('basicInfo', {}).get('csRankingPoints', 'Not Found')} Star)
+├─ Gender: Not Available
+├─ Show Rank: {data.get('basicInfo', {}).get('showRank', 'Not Found')}
+├─ Show Br Rank: {data.get('basicInfo', {}).get('showBrRank', 'Not Found')}
+├─ Show Cs Rank: {data.get('basicInfo', {}).get('showCsRank', 'Not Found')}
+├─ Created At: {convert_time(data.get('basicInfo', {}).get('createAt'))}
+└─ Last Login: {convert_time(data.get('basicInfo', {}).get('lastLoginAt'))}
 
 ACCOUNT OVERVIEW:
 ┌ ACCOUNT OVERVIEW
-├─ Avatar ID: {data.get('AccountInfo', {}).get('AccountAvatarId', 'Not Found')}
-├─ Banner ID: {data.get('AccountInfo', {}).get('AccountBannerId', 'Not Found')}
-├─ Mode Prefer: {data.get('socialinfo', {}).get('rankShow', 'Not Found')}
-├─ Equipped Skills: {data.get('AccountProfileInfo', {}).get('EquippedSkills', 'Not Found')}
-├─ Language: {data.get('socialinfo', {}).get('language', 'Not Found')}
-└─ Outfits: {data.get('AccountProfileInfo', {}).get('EquippedOutfit', 'Not Found')}
+├─ Avatar ID: {data.get('profileInfo', {}).get('avatarId', 'Not Found')}
+├─ Banner ID: {data.get('basicInfo', {}).get('bannerId', 'Not Found')}
+├─ Mode Prefer: {data.get('socialInfo', {}).get('rankShow', 'Not Found')}
+├─ Equipped Skills: {data.get('profileInfo', {}).get('equippedSkills', 'Not Found')}
+├─ Language: {data.get('socialInfo', {}).get('language', 'Not Found')}
+└─ Outfits: {data.get('profileInfo', {}).get('clothes', 'Not Found')}
 
 PET DETAILS:
 ┌ PET DETAILS
@@ -191,10 +206,10 @@ PET DETAILS:
 
 GUILD INFORMATION:
 ┌ GUILD INFORMATION
-├─ Guild Name: {data.get('GuildInfo', {}).get('GuildName', 'Not Found')}
-├─ Guild ID: {data.get('GuildInfo', {}).get('GuildID', 'Not Found')}
-├─ Guild Level: {data.get('GuildInfo', {}).get('GuildLevel', 'Not Found')}
-├─ Live Members: {data.get('GuildInfo', {}).get('GuildMember', 'Not Found')}
+├─ Guild Name: {data.get('clanBasicInfo', {}).get('clanName', 'Not Found')}
+├─ Guild ID: {data.get('clanBasicInfo', {}).get('clanId', 'Not Found')}
+├─ Guild Level: {data.get('clanBasicInfo', {}).get('clanLevel', 'Not Found')}
+├─ Live Members: {data.get('clanBasicInfo', {}).get('memberNum', 'Not Found')}
 └─ Leader Information:
     ├─ Leader Name: {data.get('captainBasicInfo', {}).get('nickname', 'Not Found')}
     ├─ Leader UID: {data.get('captainBasicInfo', {}).get('accountId', 'Not Found')}
@@ -727,7 +742,7 @@ def get_token(message):
             )
 
         # ✅ API Call
-        url = f"https://ajay-jwt-api-new-ob53.vercel.app/token?uid={uid}&password={password}"
+        url = f"http://203.57.85.58:2035/token?uid={uid}&password={password}&key=@yashapis"
         response = requests.get(url, timeout=100)
 
         if response.status_code != 200:
@@ -938,8 +953,8 @@ def outfit(message):
             pass
 
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Error: {e}")    
-                
+        bot.send_message(message.chat.id, f"❌ Error: {e}") 
+                   
 @bot.message_handler(commands=['events'])
 def events(message):
     try:
