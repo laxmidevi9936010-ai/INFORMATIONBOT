@@ -786,8 +786,9 @@ def get_token(message):
 ┌ TOKENS
 ├─ Access Token:
 <code>{data.get('access_token')}</code>
+
 ├─ JWT Token:
-<code>{data.get('jwt_token')}</code>
+<code>{data.get('token')}</code>
 </b>
 """
 
