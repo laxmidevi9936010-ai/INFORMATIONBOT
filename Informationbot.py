@@ -16,7 +16,7 @@ API_URL = "http://203.57.85.58:2035/wishlist?uid={}&key=@yashapis"
 EMOTE_API = "https://cdn.jsdelivr.net/gh/ShahGCreator/icon@main/PNG/{}.png"
 INFO_API = "https://ajay-new-all-region-info-api.vercel.app/ajay-info?uid={uid}&key=AJAY"
 BANNER_API = "https://ffavtarbanner.vercel.app/avatar-banner?uid={uid}&region=ind"
-OUTFIT_API = "https://outfit-api-by-ajay-one.vercel.app/outfit?uid={uid}&key=AJAY"
+OUTFIT_API = "https://outfit-api-by-ajay.vercel.app/outfit-image?uid={uid}&key=AJAY"
 
 def banner_to_sticker(url):
     response = requests.get(url, timeout=150)
@@ -927,7 +927,7 @@ def outfit(message):
             pass
 
         # 👉 API URL
-        url = f"https://outfit-api-by-ajay-one.vercel.app/outfit?uid={uid}&key=AJAY"
+        url = f"https://outfit-api-by-ajay.vercel.app/outfit-image?uid={uid}&key=AJAY"
 
         # 🌐 Request
         res = requests.get(url, timeout=100)
